@@ -1,0 +1,30 @@
+services:
+  blazor-webapp:
+    image: bgbj-webapp:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bgbahasajerman-full-blazor-webapp
+    ports:
+      - "0.0.0.0:8084:80"  # Explicitly bind to all interfaces
+    networks:
+      - blazor-network
+      - shared-net   # <-- Add this line to join the shared network
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ASPNETCORE_HTTP_PORTS=80
+      - DOTNET_RUNNING_IN_CONTAINER=true
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
+    volumes:
+      - .:/src
+      #- /src/bin  # Exclude bin directory
+      #- /src/obj  # Exclude obj directory
+
+networks:
+  blazor-network:
+    driver: bridge
+  shared-net:         # <-- Add this block to reference the external network
+    external: true
