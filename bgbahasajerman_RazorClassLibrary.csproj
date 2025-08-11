@@ -1,11 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
 
+    <!-- NuGet metadata -->
+    <PackageId>bgbahasajerman.RazorClassLibrary</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Luna</Authors>
+    <Description>Local Razor Class Library for internal use</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <!-- Ensure packing works -->
+    <IsPackable>true</IsPackable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
@@ -15,4 +24,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.8" />
   </ItemGroup>
 
+  <!-- Include README in the package -->
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>
