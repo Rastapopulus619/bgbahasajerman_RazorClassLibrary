@@ -1,0 +1,103 @@
+﻿@using Microsoft.AspNetCore.Components
+@using System.Globalization
+@using System.Linq
+@using bgbahasajerman_RazorClassLibrary.Models
+@namespace bgbahasajerman_RazorClassLibrary.Components
+
+<div class="cardWrapper">
+    <div class="cardBox"
+         style="@($"--bg:{Fallback.Background}; --card:{Fallback.Card}; --sections:{Fallback.Sections};")">
+        <div class="titleBox">Deutsch Unterricht</div>
+
+        <div class="StudentDataBox">
+            <table class="std_Table">
+                <tr>
+                    <td class="StudentTableTitleCell">NAME </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                    <td class="StudentTableTitleCell">DAUER </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                </tr>
+                <tr>
+                    <td class="StudentTableTitleCell">STUFE </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="stufe">—</td>
+                    <td class="StudentTableTitleCell">INTENSITÄT </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                </tr>
+                <tr>
+                    <td class="StudentTableTitleCell">TAGE </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="tageCell">—</td>
+                    <td class="StudentTableTitleCell">ZEIT </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="zeitenCell">—</td>
+                </tr>
+            </table>
+        </div>
+
+        @if (Tables is { Count: > 0 })
+        {
+            @for (int t = 0; t < Tables.Count; t++)
+            {
+                if (t > 0)
+                {
+                    <div class="separatorBox">&nbsp;</div>
+                }
+
+                var table = Tables[t];
+
+                // FIX 1: make both sides List<LessonCardTableDataModel>
+                var slots = table.Slots ?? new List<LessonCardTableDataModel>();
+
+                <table class="slotsTable">
+                    @* FIX 2: tell the compiler exactly what T is *@
+                    @foreach (var row in Chunk<LessonCardTableDataModel>(slots, Columns))
+                    {
+                        <tr>
+                            @foreach (var cell in row)
+                            {
+                                var isEmpty = cell.Date == default;
+                                <td attended="@(cell.Attended ? "y" : "n")" diganti="@(cell.Replaced ? "y" : "n")">
+                                    @(isEmpty ? "—" : cell.Date.ToString("dd MMM yyyy", De))
+                                    @if (!isEmpty && cell.Replaced && cell.ReplacementDate is not null)
+                                    {
+                                        <br />
+                                        <span class="lesPengganti">↪ @cell.ReplacementDate.Value.ToString("dd MMM yyyy", De)</span>
+                                    }
+                                </td>
+                            }
+                            @for (int i = row.Count; i < Columns; i++)
+                            {
+                                <td>—</td>
+                            }
+                        </tr>
+                    }
+                </table>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<LessonCardTable> Tables { get; set; } = Array.Empty<LessonCardTable>();
+    [Parameter] public int Columns { get; set; } = 2;
+
+    private static readonly (string Background, string Card, string Sections) Fallback =
+      ("rgb(252, 162, 162)", "rgb(255, 106, 106)", "rgb(238, 75, 75)");
+
+    private static readonly CultureInfo De = new("de-DE");
+
+    private static List<List<T>> Chunk<T>(IReadOnlyList<T> source, int size)
+    {
+        var res = new List<List<T>>();
+        if (size <= 0 || source.Count == 0) return res;
+
+        for (int i = 0; i < source.Count; i += size)
+            res.Add(source.Skip(i).Take(Math.Min(size, source.Count - i)).ToList());
+
+        return res;
+    }
+}
