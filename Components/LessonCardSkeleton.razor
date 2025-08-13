@@ -1,0 +1,95 @@
+﻿@using Microsoft.AspNetCore.Components
+@namespace bgbahasajerman_RazorClassLibrary.Components
+
+<div class="cardWrapper">
+    <div class="cardBox"
+         style="@($"--bg:{Fallback.Background}; --card:{Fallback.Card}; --sections:{Fallback.Sections};")">
+        <div class="titleBox">Deutsch Unterricht</div>
+
+        <!-- Fixed header (StudentDataBox) -->
+        <div class="StudentDataBox">
+            <table class="std_Table">
+                <tr>
+                    <td class="StudentTableTitleCell">NAME </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                    <td class="StudentTableTitleCell">DAUER </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                </tr>
+                <tr>
+                    <td class="StudentTableTitleCell">STUFE </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="stufe">—</td>
+                    <td class="StudentTableTitleCell">INTENSITÄT </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell">—</td>
+                </tr>
+                <tr>
+                    <td class="StudentTableTitleCell">TAGE </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="tageCell">—</td>
+                    <td class="StudentTableTitleCell">ZEIT </td>
+                    <td class="StudentTableDotsCells">:</td>
+                    <td class="StudentTableDataCell" id="zeitenCell">—</td>
+                </tr>
+            </table>
+        </div>
+
+        @if (CellCounts is { Count: > 0 })
+        {
+            @for (int s = 0; s < CellCounts.Count; s++)
+            {
+                <div class="separatorBox">&nbsp;</div>
+
+                <!-- Debug info for this section -->
+                <div style="font-size:12px; color:#666; margin:4px 0">
+                    [debug] s=@s cells=@CellCounts[s] rows=@RowCount(CellCounts[s])
+                </div>
+
+                <table class="slotsTable">
+                    @{
+                        var cells = CellCounts[s];
+                        var rows = RowCount(cells);
+
+                        if (cells > 0)
+                        {
+                            for (int r = 0; r < rows; r++)
+                            {
+                                <tr>
+                                    @{
+                                        int left = r * 2;
+                                        int right = left + 1;
+
+                                        // left cell (either content or placeholder)
+                                        <td>@(left < cells ? "—" : "")</td>
+
+                                        // right cell (either content or placeholder)
+                                        <td>@(right < cells ? "—" : "")</td>
+                                    }
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="2" style="text-align:center; font-style:italic; color:#999;">No cells</td>
+                            </tr>
+                        }
+                    }
+
+                </table>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<int> CellCounts { get; set; } = Array.Empty<int>();
+
+    private static readonly (string Background, string Card, string Sections) Fallback =
+      ("rgb(252, 162, 162)", "rgb(255, 106, 106)", "rgb(238, 75, 75)");
+
+    // number of rows needed for N cells with 2 cells per row
+    private static int RowCount(int cellCount) => cellCount == 0 ? 0 : (cellCount + 1) / 2;
+}

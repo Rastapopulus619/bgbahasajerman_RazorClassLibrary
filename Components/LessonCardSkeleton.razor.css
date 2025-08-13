@@ -1,0 +1,107 @@
+﻿.cardWrapper {
+    padding: 10px;
+    box-sizing: border-box;
+    display: inline-block;
+}
+
+/* Default CSS vars (will be set inline from Razor) */
+:root, :host {
+    --bg: rgb(255,255,255);
+    --card: rgb(255,255,255);
+    --sections: rgb(0,0,0);
+}
+
+.cardBox {
+    width: 400px;
+    box-sizing: border-box;
+    background-color: var(--card);
+    /* You can apply body background on the host page later;
+     keeping this minimal for now */
+}
+
+.titleBox {
+    height: 35px;
+    width: 100%;
+    box-sizing: border-box;
+    border-top: 4px solid black;
+    border-right: 4px solid black;
+    border-bottom: 2px solid black;
+    border-left: 4px solid black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 24px;
+    font-family: 'Bayon';
+    letter-spacing: 2px;
+    background-color: var(--sections);
+}
+
+.StudentDataBox {
+    box-sizing: border-box;
+    border: 3px solid black;
+    font-weight: bold;
+}
+
+.std_Table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+    .std_Table td {
+        font-size: 15px;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        padding-left: 3px;
+    }
+
+.StudentTableTitleCell {
+    width: 20%;
+    text-align: left;
+}
+
+.StudentTableDotsCells {
+    width: 5%;
+}
+
+.StudentTableDataCell {
+    width: 25%;
+    text-align: left;
+}
+
+.separatorBox {
+    padding-top: 3px;
+    padding-bottom: 3px;
+    border-left: 3px solid black;
+    border-right: 3px solid black;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-weight: bold;
+    font-size: 15px;
+    font-family: 'Urbanist';
+    letter-spacing: 1px;
+    background-color: var(--sections);
+}
+
+.slotsTable {
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    box-sizing: border-box;
+    border: 3px solid black;
+    text-align: center;
+    font-weight: bold;
+    justify-content: center;
+    align-items: center;
+}
+
+    .slotsTable td {
+        height: 40px;
+        width: 50%;
+        border: 3px solid black;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        font-size: 17px;
+    }
