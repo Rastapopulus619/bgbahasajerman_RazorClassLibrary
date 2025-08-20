@@ -1,0 +1,42 @@
+﻿@using Microsoft.AspNetCore.Components
+@namespace bgbahasajerman_RazorClassLibrary.Components
+
+@code {
+    [Parameter] public IReadOnlyList<int>? CellCounts { get; set; } // [hook: parameter-binding]
+}
+
+@if (CellCounts is null || CellCounts.Count == 0)
+{
+    <p><em>No sections yet.</em></p>
+}
+else
+{
+    @for (int s = 0; s < CellCounts.Count; s++)
+    {
+        <table style="border-collapse:collapse; width:100%; margin:.25rem 0">
+            <tbody>
+                @{
+                    var cells = CellCounts[s];
+                    var rows = (cells + 1) / 2; // 2 cells per row [hook: layout-algorithm]
+
+                    if (cells == 0)
+                    {
+                        <tr><td colspan="2" style="border:1px solid #ccc; text-align:center; color:#777"><em>No cells</em></td></tr>
+                    }
+                    else
+                    {
+                        for (int r = 0; r < rows; r++)
+                        {
+                            int left = r * 2;
+                            int right = left + 1;
+                            <tr>
+                                <td style="border:1px solid #ccc; height:32px; text-align:center">@(left < cells ? "—" : "")</td>
+                                <td style="border:1px solid #ccc; height:32px; text-align:center">@(right < cells ? "—" : "")</td>
+                            </tr>
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    }
+}

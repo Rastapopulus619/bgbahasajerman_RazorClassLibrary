@@ -29,6 +29,6 @@
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="assets\" />
+    <Folder Include="assets\Pictures\Paraf\" />
   </ItemGroup>
 </Project>
