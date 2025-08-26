@@ -1,0 +1,174 @@
+@typeparam TItem
+
+<div class="combo-root" @onfocusout="OnFocusOut">
+    <input class="combo-input"
+           @bind="SearchText"
+           @bind:event="oninput"
+           @onkeydown="OnKeyDown"
+           @onfocus="ShowList"
+           placeholder="@Placeholder"
+           aria-autocomplete="list"
+           aria-expanded="@(IsOpen.ToString().ToLower())" />
+
+    <ul class="combo-list" role="listbox" style="display:@(IsOpen && FilteredItems.Any() ? "block" : "none")">
+        @for (int i = 0; i < FilteredItems.Count; i++)
+        {
+            var item = FilteredItems[i];
+            var text = GetText(item);
+            <li role="option"
+                class="combo-item @(i == HighlightedIndex ? "highlight" : "")"
+                @key="item"
+                @onmousedown:preventDefault
+                @onclick="() => SelectItem(item)">
+                @text
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    // Parameters
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
+    [Parameter] public Func<TItem, string> ItemText { get; set; }
+    [Parameter] public TItem SelectedItem { get; set; }
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; }
+    [Parameter] public int MinSearchLength { get; set; } = 0;
+    [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase;
+    [Parameter] public int MaxVisibleItems { get; set; } = 10;
+
+    // Internal state
+    private string SearchText { get; set; } = string.Empty;
+    private List<TItem> FilteredItems { get; set; } = new();
+    private bool IsOpen { get; set; }
+    private int HighlightedIndex { get; set; } = -1;
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedItem != null)
+        {
+            var t = GetText(SelectedItem);
+            if (t != SearchText)
+                SearchText = t;
+        }
+        UpdateFilteredItems();
+    }
+
+    private string GetText(TItem item)
+    {
+        if (item == null) return string.Empty;
+        if (ItemText != null) return ItemText(item) ?? string.Empty;
+        return item.ToString() ?? string.Empty;
+    }
+
+    private void UpdateFilteredItems()
+    {
+        var q = SearchText ?? string.Empty;
+        var items = Items ?? Enumerable.Empty<TItem>();
+
+        if (q.Length < MinSearchLength)
+        {
+            FilteredItems = items.Take(MaxVisibleItems).ToList();
+        }
+        else
+        {
+            FilteredItems = items
+                .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0)
+                .Take(MaxVisibleItems)
+                .ToList();
+        }
+
+        if (!FilteredItems.Any())
+        {
+            HighlightedIndex = -1;
+        }
+        else
+        {
+            if (HighlightedIndex < 0 || HighlightedIndex >= FilteredItems.Count)
+                HighlightedIndex = 0;
+        }
+    }
+
+    private void ShowList()
+    {
+        IsOpen = true;
+        UpdateFilteredItems();
+    }
+
+    private async Task SelectItem(TItem item)
+    {
+        SelectedItem = item;
+        await SelectedItemChanged.InvokeAsync(item);
+        SearchText = GetText(item);
+        IsOpen = false;
+        HighlightedIndex = -1;
+        StateHasChanged();
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "ArrowDown")
+        {
+            if (!IsOpen) ShowList();
+            if (FilteredItems.Any())
+            {
+                HighlightedIndex = (HighlightedIndex + 1) % FilteredItems.Count;
+            }
+        }
+        else if (e.Key == "ArrowUp")
+        {
+            if (!IsOpen) ShowList();
+            if (FilteredItems.Any())
+            {
+                HighlightedIndex = (HighlightedIndex - 1 + FilteredItems.Count) % FilteredItems.Count;
+            }
+        }
+        else if (e.Key == "Enter")
+        {
+            if (IsOpen && HighlightedIndex >= 0 && HighlightedIndex < FilteredItems.Count)
+            {
+                _ = SelectItem(FilteredItems[HighlightedIndex]);
+            }
+            else if (!IsOpen && FilteredItems.FirstOrDefault() is TItem first)
+            {
+                _ = SelectItem(first);
+            }
+        }
+        else if (e.Key == "Escape")
+        {
+            IsOpen = false;
+        }
+
+        // typing keys will already update SearchText via oninput binding; recompute list
+        InvokeAsync(() =>
+        {
+            UpdateFilteredItems();
+            StateHasChanged();
+            return Task.CompletedTask;
+        });
+    }
+
+    private void OnFocusOut(FocusEventArgs e)
+    {
+        // close dropdown when focus leaves entire component
+        // small delay to allow click handlers (mousedown preventDefault) to run
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(100);
+            await InvokeAsync(() =>
+            {
+                // if focus is not inside, close
+                IsOpen = false;
+                StateHasChanged();
+            });
+        });
+    }
+}
+
+<style>
+.combo-root { position: relative; width: 250px; font-family: Segoe UI, Arial; }
+.combo-input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px; }
+.combo-list { position: absolute; left: 0; right: 0; margin: 0; padding: 0; list-style: none; max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-top: none; background: white; z-index: 1000; }
+.combo-item { padding: 6px 8px; cursor: pointer; }
+.combo-item.highlight { background: #0078d4; color: white; }
+</style>
