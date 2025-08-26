@@ -398,11 +398,11 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
-.vscode/*
-!.vscode/settings.json
+# Ignore workspace VS Code settings (workspace-specific, not repo configuration)
+.vscode/
+!.vscode/extensions.json
 !.vscode/tasks.json
 !.vscode/launch.json
-!.vscode/extensions.json
 !.vscode/*.code-snippets
 
 # Local History for Visual Studio Code
