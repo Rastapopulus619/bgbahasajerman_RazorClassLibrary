@@ -12,7 +12,9 @@
                 <tr>
                     <td class="StudentTableTitleCell">NAME </td>
                     <td class="StudentTableDotsCells">:</td>
-                    <td class="StudentTableDataCell">—</td>
+                    <DynamicComboBox Value="@Name"
+                         ValueChanged="(string? v) => Name = v"
+                         Options="StudentNames" />                   
                     <td class="StudentTableTitleCell">DAUER </td>
                     <td class="StudentTableDotsCells">:</td>
                     <td class="StudentTableDataCell">—</td>
@@ -84,4 +86,10 @@
 
     // number of rows needed for N cells with 2 cells per row
     private static int RowCount(int cellCount) => cellCount == 0 ? 0 : (cellCount + 1) / 2;
+
+    private string? Name;
+    private readonly List<string> StudentNames = new()
+    {
+        "Anna", "Ben", "Clara", "Dinda", "Erik"
+    };
 }

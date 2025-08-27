@@ -1,0 +1,88 @@
+﻿@* RCL: Components/DynamicComboBox.razor *@
+@using Microsoft.AspNetCore.Components.Web
+
+<td class="@WrapperClass" style="@WrapperStyle" @onclick="StartEdit">
+    @if (!IsEditing)
+    {
+        <span>@(string.IsNullOrWhiteSpace(Value) ? Placeholder : Value)</span>
+    }
+    else
+    {
+        <select value="@current"
+                @onchange="OnChanged"
+                @onblur="OnBlur"
+                @onkeydown="OnKeyDown"
+                style="width:100%; background:transparent; border:none; outline:0; font:inherit;"
+                @ref="selectRef">
+            @foreach (var opt in Options)
+            {
+                <option value="@opt">@opt</option>
+            }
+        </select>
+    }
+</td>
+
+@code {
+    // Public API
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public IEnumerable<string> Options { get; set; } = Enumerable.Empty<string>();
+    [Parameter] public string Placeholder { get; set; } = "—";
+    [Parameter] public string WrapperClass { get; set; } = "StudentTableDataCell";
+    [Parameter] public string? WrapperStyle { get; set; } = "padding:.4rem 1rem; cursor:pointer;";
+
+    // Internal state
+    private bool IsEditing;
+    private string? current;
+    private bool committed;
+    private ElementReference selectRef;
+
+    protected override void OnParametersSet()
+    {
+        // Keep temp value in sync when not editing
+        if (!IsEditing)
+            current = Value;
+    }
+
+    private void StartEdit()
+    {
+        if (IsEditing) return;
+        IsEditing = true;
+        committed = false;
+        current = Value;
+        StateHasChanged(); // render <select> so we can focus it next
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsEditing)
+            await selectRef.FocusAsync();
+    }
+
+    private async Task OnChanged(ChangeEventArgs e)
+    {
+        current = e?.Value?.ToString();
+        committed = true;
+        IsEditing = false;
+        await ValueChanged.InvokeAsync(current);
+    }
+
+    private void OnBlur(FocusEventArgs _)
+    {
+        // If user clicked away without choosing, cancel edit
+        if (!committed)
+        {
+            IsEditing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            IsEditing = false; // cancel
+            StateHasChanged();
+        }
+    }
+}
