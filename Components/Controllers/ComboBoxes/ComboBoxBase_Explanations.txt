@@ -1,0 +1,39 @@
+ComboBoxBase - longer explanations for beginners
+
+This file contains extended explanations referenced from inline comments in ComboBoxBase.razor.
+
+1) Blazor component basics
+- A .razor file mixes HTML-like markup with C# code. The markup renders to DOM elements in the browser. The @code { } block contains C# logic (fields, methods, properties, lifecycle methods).
+- Components can be generic using @typeparam TItem at the top. This makes the component reusable with different data types.
+- Parameters marked with [Parameter] can be set by the parent component when it uses this component. EventCallback<T> is the Blazor pattern for notifying the parent about changes.
+
+2) Binding and events
+- @bind on an input creates a two-way binding between the input value and a C# property (SearchText). By default the update happens on 'onchange' (when the input loses focus). Setting @bind:event="oninput" makes the binding update on every keystroke.
+- @onkeydown, @onclick, @onfocus and @onfocusout are event handlers. They call C# methods when those DOM events fire.
+- InvokeAsync is used to schedule UI updates and to ensure code runs on the correct synchronization/context for Blazor's rendering loop.
+
+3) Component lifecycle
+- OnParametersSet() is called after the parent has provided parameter values. It's a good place to synchronize internal state based on parameters.
+
+4) Rendering lists and identity
+- @for loops generate repeated markup for a list. Using @key helps Blazor track which item corresponds to which DOM element; this avoids unwanted re-rendering issues when the list changes.
+
+5) Accessibility attributes
+- aria-autocomplete and aria-expanded help screen readers understand that this input is a combobox/listbox and whether it's open.
+
+6) Keyboard handling
+- KeyboardEventArgs provides the pressed key via e.Key. The code responds to ArrowDown, ArrowUp, Enter and Escape for common combobox behavior.
+
+7) Why mousedown preventDefault? and focus handling
+- Clicking an <li> causes the input to lose focus before the click handler runs, which may close the dropdown early. Using @onmousedown:preventDefault prevents the browser from moving focus on mousedown, allowing the click handler to select the item first. OnFocusOut uses a small Task.Delay to allow these event handlers to complete before closing the dropdown.
+
+8) EventCallback vs Action
+- EventCallback<T> is the recommended way for child components to notify parents. It integrates with Blazor's rendering and supports async handlers in the parent.
+
+9) StateHasChanged
+- Call StateHasChanged when you modify component state outside of the normal event flow or after asynchronous operations so Blazor re-renders the component.
+
+10) Threading and InvokeAsync
+- Blazor components must run UI updates on a synchronization context that Blazor controls. InvokeAsync schedules a delegate on that context and is safe to call from background tasks.
+
+If you'd like, I can add a small example showing how to use this component from a parent page with two-way binding and sample data.

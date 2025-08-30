@@ -1,6 +1,11 @@
+@* ComboBoxBase.razor
+   Short inline comments are kept brief. For longer explanations and Blazor concepts see ComboBoxBase_Explanations.txt in the same folder.
+*@
 @typeparam TItem
 
 <div class="combo-root" @onfocusout="OnFocusOut">
+    <!-- simple text input that the user types in -->
+    <!-- binds input value to SearchText; updates on every keystroke; handles key, focus events -->
     <input class="combo-input"
            @bind="SearchText"
            @bind:event="oninput"
@@ -10,11 +15,13 @@
            aria-autocomplete="list"
            aria-expanded="@(IsOpen.ToString().ToLower())" />
 
+    <!-- list of filtered items; shown only when open and items exist -->
     <ul class="combo-list" role="listbox" style="display:@(IsOpen && FilteredItems.Any() ? "block" : "none")">
         @for (int i = 0; i < FilteredItems.Count; i++)
         {
             var item = FilteredItems[i];
             var text = GetText(item);
+            @* each list entry; the class uses a conditional expression to add "highlight" when active *@
             <li role="option"
                 class="combo-item @(i == HighlightedIndex ? "highlight" : "")"
                 @key="item"
@@ -27,40 +34,43 @@
 </div>
 
 @code {
-    // Parameters
-    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>();
-    [Parameter] public Func<TItem, string> ItemText { get; set; }
-    [Parameter] public TItem SelectedItem { get; set; }
-    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
-    [Parameter] public string Placeholder { get; set; }
-    [Parameter] public int MinSearchLength { get; set; } = 0;
-    [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase;
-    [Parameter] public int MaxVisibleItems { get; set; } = 10;
+    // Parameters - these are set by the parent that uses this component
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>(); // source items
+    [Parameter] public Func<TItem, string> ItemText { get; set; } // optional extractor to get display text from an item
+    [Parameter] public TItem SelectedItem { get; set; } // currently selected item (two-way pattern uses EventCallback)
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; } // invoked when selection changes
+    [Parameter] public string Placeholder { get; set; } // placeholder attribute for the input
+    [Parameter] public int MinSearchLength { get; set; } = 0; // minimum chars before filtering begins
+    [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase; // how to compare text
+    [Parameter] public int MaxVisibleItems { get; set; } = 10; // maximum items shown in the list
 
-    // Internal state
-    private string SearchText { get; set; } = string.Empty;
-    private List<TItem> FilteredItems { get; set; } = new();
-    private bool IsOpen { get; set; }
-    private int HighlightedIndex { get; set; } = -1;
+    // Internal state - not visible to parent
+    private string SearchText { get; set; } = string.Empty; // current text in the input
+    private List<TItem> FilteredItems { get; set; } = new(); // items that match current search
+    private bool IsOpen { get; set; } // is the dropdown visible?
+    private int HighlightedIndex { get; set; } = -1; // which list index is highlighted for keyboard selection
 
+    // Blazor lifecycle: called when parameters from parent might have changed
     protected override void OnParametersSet()
     {
         if (SelectedItem != null)
         {
             var t = GetText(SelectedItem);
             if (t != SearchText)
-                SearchText = t;
+                SearchText = t; // keep input text in sync when parent sets SelectedItem
         }
-        UpdateFilteredItems();
+        UpdateFilteredItems(); // ensure filtered list matches current SearchText
     }
 
+    // Helper: get a string to display for an item
     private string GetText(TItem item)
     {
         if (item == null) return string.Empty;
-        if (ItemText != null) return ItemText(item) ?? string.Empty;
-        return item.ToString() ?? string.Empty;
+        if (ItemText != null) return ItemText(item) ?? string.Empty; // use provided extractor when available
+        return item.ToString() ?? string.Empty; // fallback to ToString()
     }
 
+    // Recompute FilteredItems based on SearchText and parameters
     private void UpdateFilteredItems()
     {
         var q = SearchText ?? string.Empty;
@@ -68,10 +78,12 @@
 
         if (q.Length < MinSearchLength)
         {
+            // when search is too short, show the first N items (or none if Items empty)
             FilteredItems = items.Take(MaxVisibleItems).ToList();
         }
         else
         {
+            // filter items by substring match, using configured comparison
             FilteredItems = items
                 .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0)
                 .Take(MaxVisibleItems)
@@ -80,31 +92,34 @@
 
         if (!FilteredItems.Any())
         {
-            HighlightedIndex = -1;
+            HighlightedIndex = -1; // nothing to highlight
         }
         else
         {
             if (HighlightedIndex < 0 || HighlightedIndex >= FilteredItems.Count)
-                HighlightedIndex = 0;
+                HighlightedIndex = 0; // reset highlight to first item when list changes
         }
     }
 
+    // Make the list visible and refresh items
     private void ShowList()
     {
         IsOpen = true;
         UpdateFilteredItems();
     }
 
+    // Called when the user picks an item (click or keyboard)
     private async Task SelectItem(TItem item)
     {
-        SelectedItem = item;
-        await SelectedItemChanged.InvokeAsync(item);
-        SearchText = GetText(item);
-        IsOpen = false;
-        HighlightedIndex = -1;
-        StateHasChanged();
+        SelectedItem = item; // update internal selected value
+        await SelectedItemChanged.InvokeAsync(item); // notify parent via EventCallback
+        SearchText = GetText(item); // put the selected text into the input
+        IsOpen = false; // close dropdown
+        HighlightedIndex = -1; // clear highlight
+        StateHasChanged(); // request UI refresh
     }
 
+    // Handle keyboard navigation and selection
     private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "ArrowDown")
@@ -112,6 +127,7 @@
             if (!IsOpen) ShowList();
             if (FilteredItems.Any())
             {
+                // advance highlight and wrap around
                 HighlightedIndex = (HighlightedIndex + 1) % FilteredItems.Count;
             }
         }
@@ -120,6 +136,7 @@
             if (!IsOpen) ShowList();
             if (FilteredItems.Any())
             {
+                // move highlight up and wrap around
                 HighlightedIndex = (HighlightedIndex - 1 + FilteredItems.Count) % FilteredItems.Count;
             }
         }
@@ -127,19 +144,19 @@
         {
             if (IsOpen && HighlightedIndex >= 0 && HighlightedIndex < FilteredItems.Count)
             {
-                _ = SelectItem(FilteredItems[HighlightedIndex]);
+                _ = SelectItem(FilteredItems[HighlightedIndex]); // pick highlighted item
             }
             else if (!IsOpen && FilteredItems.FirstOrDefault() is TItem first)
             {
-                _ = SelectItem(first);
+                _ = SelectItem(first); // if closed, choose first match
             }
         }
         else if (e.Key == "Escape")
         {
-            IsOpen = false;
+            IsOpen = false; // close on escape
         }
 
-        // typing keys will already update SearchText via oninput binding; recompute list
+        // typing updates SearchText from binding; ensure filtered list refreshed and UI updated
         InvokeAsync(() =>
         {
             UpdateFilteredItems();
@@ -148,6 +165,7 @@
         });
     }
 
+    // When focus leaves the whole component, close the dropdown after a small delay
     private void OnFocusOut(FocusEventArgs e)
     {
         // close dropdown when focus leaves entire component
