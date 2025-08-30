@@ -69,3 +69,5 @@
 *.eot   binary
 *.ico   binary
 *.mp4   binary
+* .sh text eol=lf
+* .sh text eol=lf
