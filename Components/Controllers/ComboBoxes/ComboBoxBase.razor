@@ -1,8 +1,6 @@
 @typeparam TItem
 
-<div class="combo-root" @onfocusout="OnFocusOut">
-    <!-- simple text input that the user types in -->
-    <!-- binds input value to SearchText; updates on every keystroke; handles key, focus events -->
+<div class="combo-root" @onfocusout="OnFocusOut"> <!-- contains the input and the dropdown list, handles focus out to close the list - calls OnFocusOut in line 164 -->
     <input class="combo-input"
            @bind="SearchText"
            @bind:event="oninput"
@@ -12,13 +10,22 @@
            aria-autocomplete="list"
            aria-expanded="@(IsOpen.ToString().ToLower())" />
 
-    <!-- list of filtered items; shown only when open and items exist -->
+   <!-- -= ⬆️LEARN & REMEMBER =-
+        1. definest as input & classifies for css styling application (end of file)
+        2. binds input box to SearchText property
+        3. oninput event is defined as trigger for binding update
+        4. trigger to handle navigation and selection individually (line 121 : ArrowDown, ArrowUp, Enter, Escape)
+        5. trigger to open list, when input is focused
+        6. Set placeholder to Placeholder-value from Parent's [Parameter] that is stored in a variable (line:42)
+        7. "aria" is for accessibility for disabled users and provides additional information for screen readers
+        8. additional state reader for evaluating the state of the dropdown list: reads "IsOpen" (line 52) and informs DOM -->
+
     <ul class="combo-list" role="listbox" style="display:@(IsOpen && FilteredItems.Any() ? "block" : "none")">
         @for (int i = 0; i < FilteredItems.Count; i++)
         {
             var item = FilteredItems[i];
             var text = GetText(item);
-            @* each list entry; the class uses a conditional expression to add "highlight" when active *@
+            
             <li role="option"
                 class="combo-item @(i == HighlightedIndex ? "highlight" : "")"
                 @key="item"
@@ -27,18 +34,50 @@
                 @text
             </li>
         }
+
+        <!-- -= ⬆️LEARN & REMEMBER =-
+        1. definest as dropdown list container & classifies for css styling application (end of file)
+            1.1 CSS class combo-list
+            1.2 role="listbox" for accessibility for disabled users (ARIA), indicates this is a list of selectable items
+            1.3 style uses conditional expression to show/hide list based on IsOpen and if there are FilteredItems
+        2. iterates over FilteredItems with a for-loop to create each list entry
+            2.1 stores 1 item for the iteration where the list entry is created
+            2.2 GetText(item) is a helper method to safely get the display text for an item, handling nulls and using ItemText if provided
+            2.3 each list item (<li>) has:
+                - role="option" for accessibility, indicates this is a selectable option in the list
+                - class that includes "highlight" if this item is the currently highlighted one (for keyboard navigation)
+                - @key directive to help Blazor track items efficiently
+                - @onmousedown:preventDefault to prevent input from losing focus when clicking an item
+                - @onclick event that calls SelectItem(item) to handle selection when clicked
+                - displays the item's text -->
+
     </ul>
 </div>
 
 @code {
     // Parameters - these are set by the parent that uses this component
-    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>(); // source items
-    [Parameter] public Func<TItem, string> ItemText { get; set; } // optional extractor to get display text from an item
-    [Parameter] public TItem SelectedItem { get; set; } // currently selected item (two-way pattern uses EventCallback)
-    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; } // invoked when selection changes
-    [Parameter] public string Placeholder { get; set; } // placeholder attribute for the input
+    [Parameter] public IEnumerable<TItem> Items { get; set; } = Enumerable.Empty<TItem>(); // source list of generic items
+    [Parameter] public Func<TItem, string> ItemText { get; set; } 
+        // About public Func<TItem, string> ItemText:
+        // Called in GetText() to get display text. 
+        // MUST be set by the parent component that uses this ComboBoxBase component.
+        // Example usage in parent: ItemText="item => item.Name" (for a list of objects with a Name property)
+        // or ItemText="GetPersonName" where GetPersonName is a method defined in the parent that takes TItem and returns string.
+        // If not set, item.ToString() of the item is used as fallback.
+    [Parameter] public TItem SelectedItem { get; set; } 
+        // About public TItem SelectedItem:
+        // currently selected item (Supports two-way binding with EventCallback SelectedItemChanged) 
+        // Set in SelectItem() and synced in OnParametersSet(). Used to keep the input text updated.
+        // SeletcItem() method is called from the child component (line 97) 
+        // when an item is clicked or selected via keyboard. And it is set to handle the >onClick< event.
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; } // invoked when selection changes ?? explain SelectItem() ??
+        // About public EventCallback<TItem> SelectedItemChanged:
+        // EventCallback to notify parent component when SelectedItem changes.
+        // Invoked in SelectItem() after updating SelectedItem to inform parent of the new selection
+        // Example usage in parent: SelectedItemChanged="HandleSelection" where HandleSelection is a method in the parent that takes TItem.
+    [Parameter] public string Placeholder { get; set; } // placeholder attribute for the input field
     [Parameter] public int MinSearchLength { get; set; } = 0; // minimum chars before filtering begins
-    [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase; // how to compare text
+    [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase; // built-in enum for string comparison type in .NET
     [Parameter] public int MaxVisibleItems { get; set; } = 10; // maximum items shown in the list
 
     // Internal state - not visible to parent
@@ -62,9 +101,28 @@
     // Helper: get a string to display for an item
     private string GetText(TItem item)
     {
-        if (item == null) return string.Empty;
-        if (ItemText != null) return ItemText(item) ?? string.Empty; // use provided extractor when available
-        return item.ToString() ?? string.Empty; // fallback to ToString()
+        if (item == null)
+        {
+            return string.Empty;
+        }
+
+        if (ItemText != null)
+        {
+            var textFromFunc = ItemText(item);
+            if (textFromFunc != null)
+            {
+                return textFromFunc;
+            }
+            return string.Empty;
+        }
+
+        var fallback = item.ToString();
+        if (fallback != null)
+        {
+            return fallback;
+        }
+
+        return string.Empty;
     }
 
     // Recompute FilteredItems based on SearchText and parameters
@@ -82,8 +140,12 @@
         {
             // filter items by substring match, using configured comparison
             FilteredItems = items
-                .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0)
+                // THIS is the filtering condition
+                .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0) 
+                // limit to max visible items
                 .Take(MaxVisibleItems)
+                // convert from IEnumerable to List for easier indexing,
+                // because we need to access by index and Enumerable does not support that
                 .ToList();
         }
 
