@@ -1,4 +1,5 @@
 @typeparam TItem
+@namespace bgbahasajerman_RazorClassLibrary.Components.Controllers.ComboBoxes
 
 <div class="combo-root" @onfocusout="OnFocusOut"> <!-- contains the input and the dropdown list, handles focus out to close the list - calls OnFocusOut in line 164 -->
     <input class="combo-input"
@@ -31,6 +32,7 @@
                 @key="item"
                 @onmousedown:preventDefault
                 @onclick="() => SelectItem(item)">
+                @onmouseover="() => HighlightedIndex = i"  <!-- Added this -->
                 @text
             </li>
         }
@@ -71,10 +73,44 @@
         // SeletcItem() method is called from the child component (line 97) 
         // when an item is clicked or selected via keyboard. And it is set to handle the >onClick< event.
     [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; } // invoked when selection changes ?? explain SelectItem() ??
+        #region About public EventCallback<TItem> SelectedItemChanged:
         // About public EventCallback<TItem> SelectedItemChanged:
-        // EventCallback to notify parent component when SelectedItem changes.
-        // Invoked in SelectItem() after updating SelectedItem to inform parent of the new selection
-        // Example usage in parent: SelectedItemChanged="HandleSelection" where HandleSelection is a method in the parent that takes TItem.
+        // - Purpose: notify the parent when SelectedItem changes.
+        // - When it's called: SelectItem() invokes SelectedItemChanged.InvokeAsync(item).
+        // - Parent usage: SelectedItemChanged="HandleSelection" where HandleSelection(TItem item) is defined in the parent.
+        //
+        // Important: EventCallback does NOT automatically propagate through intermediate components.
+        // If you have a wrapper component, forward the callback manually.
+
+        /*
+        // Example: forwarding through a wrapper
+
+        // MyComboWrapper.razor
+        <ComboBoxBase TItem="TItem" SelectedItemChanged="HandleSelection" ... />
+
+        @code {
+            [Parameter] public EventCallback<TItem> OnItemSelected { get; set; } // exposed to the page
+
+            private async Task HandleSelection(TItem item)
+            {
+            // optional: do extra work here
+            await OnItemSelected.InvokeAsync(item); // forward to parent
+            }
+        }
+
+        // Page.razor
+        <MyComboWrapper TItem="MyType" OnItemSelected="PageHandleSelection" ... />
+
+        @code {
+            private Task PageHandleSelection(MyType item)
+            {
+            // final handling of selection
+            return Task.CompletedTask;
+            }
+        }
+        */
+        #endregion
+
     [Parameter] public string Placeholder { get; set; } // placeholder attribute for the input field
     [Parameter] public int MinSearchLength { get; set; } = 0; // minimum chars before filtering begins
     [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase; // built-in enum for string comparison type in .NET
