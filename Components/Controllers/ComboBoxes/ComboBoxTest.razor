@@ -1,8 +1,26 @@
-﻿@typeparam TItem
-@inherits ComboBoxBase<TItem>
-@namespace bgbahasajerman_RazorClassLibrary.Components.Components.Controllers.ComboBoxes
+﻿@* PSEUDOCODE:
+   - Fix the parameter passthrough: use C# expressions by prefixing parameter values with '@' so component parameters receive the component's properties instead of literal strings.
+   - Make the component parameters nullable (or initialize/mark required) to resolve CS8618 warnings.
+   - Keep the rest of the markup unchanged.
+*@
+
+@typeparam TItem
+@namespace bgbahasajerman_RazorClassLibrary.Components.Controllers.ComboBoxes
 
 <div class="combo">
-    @* Use base properties/methods; show type for quick verification *@
+    @* Placeholder for verification *@
     <p>Combo placeholder (T = @typeof(TItem).Name)</p>
+    
+    @* Compose the base component -- use @ to pass C# properties rather than literal strings *@
+    <ComboBoxBase TItem="TItem" 
+                  Items="@Items" 
+                  SelectedItemChanged="@SelectedItemChanged" 
+                  Placeholder="@Placeholder" />
 </div>
+
+@code {
+    // Expose parameters to pass through to ComboBoxBase
+    [Parameter] public IEnumerable<TItem>? Items { get; set; }
+    [Parameter] public EventCallback<TItem> SelectedItemChanged { get; set; }
+    [Parameter] public string? Placeholder { get; set; }
+}

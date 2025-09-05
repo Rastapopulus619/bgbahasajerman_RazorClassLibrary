@@ -1,0 +1,5 @@
+.combo {
+    display: block; /* Ensure it's visible */
+    width: 250px; /* Match ComboBoxBase */
+    margin: 10px 0;
+}
