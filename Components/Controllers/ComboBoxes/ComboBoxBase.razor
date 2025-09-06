@@ -31,8 +31,9 @@
                 class="combo-item @(i == HighlightedIndex ? "highlight" : "")"
                 @key="item"
                 @onmousedown:preventDefault
-                @onclick="() => SelectItem(item)">
-                @onmouseover="() => HighlightedIndex = i"  <!-- Added this -->
+                @onclick="() => SelectItem(item)"
+                @onmouseover="() => HighlightedIndex = i">
+                <!-- Added this -->
                 @text
             </li>
         }
