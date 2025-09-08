@@ -1,0 +1,17 @@
+﻿ComboBoxBase Component - JS Setup Instructions
+
+This component requires JavaScript for scrolling functionality.
+
+Option 1: Embedded JS (Recommended for Self-Contained Use)
+- JS is included inline in ComboBoxBase.razor.
+- No additional setup needed.
+
+Option 2: External JS File
+- Place ComboBoxBase.js in the RCL's wwwroot folder.
+- Add <script src="_content/bgbahasajerman_RazorClassLibrary/ComboBoxBase.js"></script> to the component or App.razor.
+
+Option 3: Manual Inclusion
+- Copy JS to the main app's wwwroot/app.js.
+- Add <script src="app.js"></script> to App.razor.
+
+Note: If JS isn't loading, check browser console for errors like "scrollElementIntoView is not defined".

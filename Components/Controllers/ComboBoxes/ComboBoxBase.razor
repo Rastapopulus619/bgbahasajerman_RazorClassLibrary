@@ -1,3 +1,5 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
 @typeparam TItem
 @namespace bgbahasajerman_RazorClassLibrary.Components.Controllers.ComboBoxes
 
@@ -6,7 +8,7 @@
            @bind="SearchText"
            @bind:event="oninput"
            @onkeydown="OnKeyDown"
-           @onfocus="ShowList"
+           @onfocus="() => { ShowList(); AutoSelectText(); }"           
            placeholder="@Placeholder"
            aria-autocomplete="list"
            aria-expanded="@(IsOpen.ToString().ToLower())" />
@@ -21,19 +23,21 @@
         7. "aria" is for accessibility for disabled users and provides additional information for screen readers
         8. additional state reader for evaluating the state of the dropdown list: reads "IsOpen" (line 52) and informs DOM -->
 
-    <ul class="combo-list" role="listbox" style="display:@(IsOpen && FilteredItems.Any() ? "block" : "none")">
+    <ul class="combo-list" role="listbox" @ref="listRef" style="display:@(IsOpen && FilteredItems.Any() ? "block" : "none")">
         @for (int i = 0; i < FilteredItems.Count; i++)
         {
             var item = FilteredItems[i];
             var text = GetText(item);
+            int currentIndex = i;  // Capture the current index value to avoid closure issues
             
             <li role="option"
                 class="combo-item @(i == HighlightedIndex ? "highlight" : "")"
                 @key="item"
                 @onmousedown:preventDefault
                 @onclick="() => SelectItem(item)"
-                @onmouseover="() => HighlightedIndex = i">
-                <!-- Added this -->
+                @onmouseover='() => { HighlightedIndex = currentIndex; Console.WriteLine($"Hovered over item: {GetText(FilteredItems[currentIndex])}"); StateHasChanged(); }'
+                @onmouseout='() => { HighlightedIndex = -1; StateHasChanged(); }'
+                >
                 @text
             </li>
         }
@@ -52,6 +56,8 @@
                 - @key directive to help Blazor track items efficiently
                 - @onmousedown:preventDefault to prevent input from losing focus when clicking an item
                 - @onclick event that calls SelectItem(item) to handle selection when clicked
+				- @onmouseover event to highlight item on mouse hover, add "{ Console.WriteLine($\"Hovered over item: {GetText(FilteredItems[currentIndex])}\");" for console debugging
+				- @onmouseout event to remove highlight, set to -1 means no visible highlight
                 - displays the item's text -->
 
     </ul>
@@ -115,10 +121,26 @@
     [Parameter] public string Placeholder { get; set; } // placeholder attribute for the input field
     [Parameter] public int MinSearchLength { get; set; } = 0; // minimum chars before filtering begins
     [Parameter] public StringComparison TextComparison { get; set; } = StringComparison.OrdinalIgnoreCase; // built-in enum for string comparison type in .NET
-    [Parameter] public int MaxVisibleItems { get; set; } = 10; // maximum items shown in the list
+	[Parameter] public int MaxVisibleItems { get; set; } = 10; // maximum items rendered in the list ** CUTS THE LIST TO THIS NUMBER ** ⚠️
+
+	
+	private ElementReference listRef;  // Add this line
 
     // Internal state - not visible to parent
-    private string SearchText { get; set; } = string.Empty; // current text in the input
+    private string _searchText;
+    private string SearchText
+    {
+	    get => _searchText;
+	    set
+	    {
+		    if (_searchText != value)
+		    {
+			    _searchText = value;
+			    UpdateFilteredItems();  // Call on every change
+		    }
+	    }
+    }
+
     private List<TItem> FilteredItems { get; set; } = new(); // items that match current search
     private bool IsOpen { get; set; } // is the dropdown visible?
     private int HighlightedIndex { get; set; } = -1; // which list index is highlighted for keyboard selection
@@ -168,22 +190,20 @@
         var q = SearchText ?? string.Empty;
         var items = Items ?? Enumerable.Empty<TItem>();
 
-        if (q.Length < MinSearchLength)
+        if (string.IsNullOrEmpty(q))
         {
-            // when search is too short, show the first N items (or none if Items empty)
-            FilteredItems = items.Take(MaxVisibleItems).ToList();
+	        // when empty, show all items
+	        FilteredItems = items.ToList();
         }
         else
         {
-            // filter items by substring match, using configured comparison
-            FilteredItems = items
-                // THIS is the filtering condition
-                .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0) 
-                // limit to max visible items
-                .Take(MaxVisibleItems)
-                // convert from IEnumerable to List for easier indexing,
-                // because we need to access by index and Enumerable does not support that
-                .ToList();
+	        // filter items by substring match, using configured comparison
+	        FilteredItems = items
+		        // THIS is the filtering condition
+		        .Where(i => GetText(i).IndexOf(q, TextComparison) >= 0) 
+		        // convert from IEnumerable to List for easier indexing,
+		        // because we need to access by index and Enumerable does not support that
+		        .ToList();
         }
 
         if (!FilteredItems.Any())
@@ -195,6 +215,24 @@
             if (HighlightedIndex < 0 || HighlightedIndex >= FilteredItems.Count)
                 HighlightedIndex = 0; // reset highlight to first item when list changes
         }
+    }
+
+    private async Task ScrollToHighlighted()
+    {
+        if (listRef.Id == null) Console.WriteLine("listRef is null");
+        Console.WriteLine($"Scrolling to index {HighlightedIndex}");
+        if (HighlightedIndex >= 0 && HighlightedIndex < FilteredItems.Count)
+        {
+            await JSRuntime.InvokeVoidAsync("scrollElementIntoView", listRef, HighlightedIndex);
+        }
+    }
+
+    private async Task AutoSelectText()
+    {
+	    if (!string.IsNullOrEmpty(SearchText))
+	    {
+		    await JSRuntime.InvokeVoidAsync("selectInputText");
+	    }
     }
 
     // Make the list visible and refresh items
@@ -225,6 +263,7 @@
             {
                 // advance highlight and wrap around
                 HighlightedIndex = (HighlightedIndex + 1) % FilteredItems.Count;
+				_ = ScrollToHighlighted(); // ensure highlighted item is visible
             }
         }
         else if (e.Key == "ArrowUp")
@@ -234,6 +273,7 @@
             {
                 // move highlight up and wrap around
                 HighlightedIndex = (HighlightedIndex - 1 + FilteredItems.Count) % FilteredItems.Count;
+				_ = ScrollToHighlighted(); // ensure highlighted item is visible
             }
         }
         else if (e.Key == "Enter")
@@ -286,3 +326,20 @@
 .combo-item { padding: 6px 8px; cursor: pointer; }
 .combo-item.highlight { background: #0078d4; color: white; }
 </style>
+
+<script>
+	// Function to scroll an element into view
+    window.scrollElementIntoView = (element, index) => {
+        console.log(`JS: Scrolling to index ${index}`);
+        const li = element.children[index];
+        if (li) li.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+    };
+
+    // Function to select input text
+    window.selectInputText = () => {
+        const input = document.querySelector('.combo-input');
+        if (input) {
+            input.select();
+        }
+    };
+</script>
